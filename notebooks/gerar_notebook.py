@@ -80,7 +80,7 @@ del modelo, modelo_cpu; torch.cuda.empty_cache()"""),
 from peft import LoraConfig, get_peft_model
 NOME = "Qwen/Qwen2.5-0.5B-Instruct"
 tok = AutoTokenizer.from_pretrained(NOME); tok.padding_side = "left"
-llm = AutoModelForCausalLM.from_pretrained(NOME, torch_dtype=torch.bfloat16).to("cuda")
+llm = AutoModelForCausalLM.from_pretrained(NOME, torch_dtype=torch.float32).to("cuda")  # T4 não tem bf16: pesos em fp32, treino em fp16 misto
 llm = get_peft_model(llm, LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, task_type="CAUSAL_LM",
                                      target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]))
 llm.print_trainable_parameters()
@@ -99,7 +99,7 @@ def juntar(lote):
     return {"input_ids": torch.tensor(ids), "labels": torch.tensor(lab),
             "attention_mask": torch.tensor([[0] * (n - len(x["input_ids"])) + [1] * len(x["input_ids"]) for x in lote])}
 args = TrainingArguments("qwen", num_train_epochs=2, per_device_train_batch_size=16, learning_rate=2e-4,
-                         warmup_ratio=0.05, lr_scheduler_type="cosine", bf16=True, logging_steps=100,
+                         warmup_ratio=0.05, lr_scheduler_type="cosine", fp16=True, logging_steps=100,
                          save_strategy="no", report_to=[], seed=42, remove_unused_columns=False)
 inicio = time.time()
 Trainer(model=llm, args=args, train_dataset=dtreino, data_collator=juntar).train()
