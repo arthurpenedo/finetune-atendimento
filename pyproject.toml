@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finetune-atendimento"
+version = "0.1.0"
+description = "Classificação de intenção bancária em português: ML clássico, embeddings, LLM sem treino, BERTimbau e Qwen com LoRA, lado a lado"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Arthur Penedo" }]
+dependencies = ["scikit-learn>=1.4"]
+
+[project.optional-dependencies]
+embeddings = ["sentence-transformers>=3.0"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+finetune-atendimento = "finetune_atendimento.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

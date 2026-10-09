@@ -1,0 +1,103 @@
+name: Avaliação
+
+# Roda as abordagens que cabem na CPU do runner (custo zero): embeddings e LLM sem treino via Ollama.
+# Junta com os resultados já versionados em resultados/ (clássico e os do Colab), gera o relatório e publica no Pages.
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "resultados/**", ".github/workflows/avaliacao.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: avaliacao-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  embeddings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -e ".[embeddings]" --extra-index-url https://download.pytorch.org/whl/cpu
+      - run: finetune-atendimento --pasta saida embeddings
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resultado-embeddings
+          path: saida/*.json
+
+  zeroshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        modelo: ["qwen2.5:3b"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -e .
+      - name: Instalar o Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sh
+      - name: Subir o Ollama e baixar o modelo
+        run: |
+          nohup ollama serve > ollama.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf localhost:11434/api/tags >/dev/null && break; sleep 2; done
+          ollama pull "${{ matrix.modelo }}"
+      - run: finetune-atendimento --pasta saida zeroshot --modelo "${{ matrix.modelo }}"
+      - name: Nome do artefato
+        run: echo "NOME=$(echo '${{ matrix.modelo }}' | tr ':' '-')" >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resultado-zeroshot-${{ env.NOME }}
+          path: saida/*.json
+
+  relatorio:
+    needs: [embeddings, zeroshot]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -e .
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: resultado-*
+          merge-multiple: true
+          path: resultados
+      - name: Gerar relatório
+        run: |
+          ls resultados
+          finetune-atendimento relatorio --html site/index.html
+          cp resultados/*.json site/
+          cp notebooks/finetune_colab.ipynb site/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relatorio
+          path: site
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  publicar:
+    if: github.ref == 'refs/heads/main'
+    needs: relatorio
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
