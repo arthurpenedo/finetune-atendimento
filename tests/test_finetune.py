@@ -2,7 +2,9 @@ import base64
 import gzip
 import json
 
-from finetune_atendimento import metricas, relatorio, zeroshot
+import pytest
+
+from finetune_atendimento import dados, metricas, relatorio, zeroshot
 from finetune_atendimento.cli import main
 from finetune_atendimento.dados import Exemplo
 
@@ -14,6 +16,28 @@ def test_metricas_acuracia_f1_e_confusoes():
     assert m["acuracia"] == 0.5 and m["sem_resposta"] == 1
     assert m["f1_por_classe"]["c"] == 0.0
     assert {"verdade": "a", "previsto": "b", "vezes": 1} in m["confusoes"]
+
+
+def test_metricas_tamanhos_diferentes_levanta_erro():
+    with pytest.raises(ValueError, match="tamanhos diferentes"):
+        metricas.avaliar(["a", "b"], ["a"])
+
+
+def test_metricas_salvar_grava_json_legivel(tmp_path):
+    caminho = tmp_path / "novo" / "x.json"  # a pasta ainda não existe
+    m = metricas.avaliar(["a", "b"], ["a", "b"])
+    dados = metricas.salvar(caminho, "teste", m, {"ms_por_exemplo": 2}, ["a", "b"])
+    lido = json.loads(caminho.read_text(encoding="utf-8"))
+    assert lido == dados
+    assert lido["abordagem"] == "teste" and lido["acuracia"] == 1.0 and lido["previsoes"] == ["a", "b"]
+
+
+def test_carregar_ignora_linhas_em_branco_e_tira_espacos(tmp_path):
+    (tmp_path / "train.csv").write_text("frase,rotulo\n oi ,a\n,\nsem rotulo,\ntchau,b\n", encoding="utf-8")
+    (tmp_path / "test.csv").write_text("frase,rotulo\nx,c\n", encoding="utf-8")
+    treino = dados.carregar("train", tmp_path)  # arquivos já existem: não baixa nada
+    assert treino == [Exemplo("oi", "a"), Exemplo("tchau", "b")]
+    assert dados.rotulos(treino + dados.carregar("test", tmp_path)) == ["a", "b", "c"]
 
 
 def test_amostra_estratificada_e_deterministica():
