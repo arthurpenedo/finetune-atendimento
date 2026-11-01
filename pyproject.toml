@@ -14,7 +14,7 @@ dependencies = ["scikit-learn>=1.4"]
 
 [project.optional-dependencies]
 embeddings = ["sentence-transformers>=3.0"]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "ruff>=0.6"]
 
 [project.scripts]
 finetune-atendimento = "finetune_atendimento.cli:main"

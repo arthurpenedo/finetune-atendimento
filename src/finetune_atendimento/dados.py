@@ -31,8 +31,8 @@ def carregar(parte: str, pasta: Path = PASTA) -> list[Exemplo]:
     with open(pasta / f"{parte}.csv", encoding="utf-8", newline="") as f:
         linhas = csv.DictReader(f)
         # o test.csv publicado termina com 2 linhas em branco; sem elas, são as 3.080 frases do BANKING77 original
-        return [Exemplo(l["frase"].strip(), l["rotulo"].strip()) for l in linhas
-                if (l.get("frase") or "").strip() and (l.get("rotulo") or "").strip()]
+        return [Exemplo(lin["frase"].strip(), lin["rotulo"].strip()) for lin in linhas
+                if (lin.get("frase") or "").strip() and (lin.get("rotulo") or "").strip()]
 
 
 def rotulos(exemplos: list[Exemplo]) -> list[str]:
