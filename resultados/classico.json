@@ -161,11 +161,11 @@
   }
  ],
  "parametros": "TF-IDF + regressão logística",
- "segundos_treino": 10867.4,
- "ms_por_exemplo": 0.16,
+ "segundos_treino": 81.4,
+ "ms_por_exemplo": 0.366,
  "tamanho_mb": 25.2,
  "custo_por_1000": 0.0,
- "onde": "CPU (notebook i5-8250U)",
+ "onde": "CPU",
  "previsoes": [
   "pedir_cartão_físico",
   "chegada_do_cartão",
