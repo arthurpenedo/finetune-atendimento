@@ -19,7 +19,7 @@ def avaliar(verdade: list[str], previsto: list[str | None]) -> dict:
     classes = sorted(set(verdade))
     vp, fp, fn = Counter(), Counter(), Counter()
     confusoes: Counter = Counter()
-    for v, p in zip(verdade, previsto):
+    for v, p in zip(verdade, previsto, strict=True):
         if v == p:
             vp[v] += 1
         else:
